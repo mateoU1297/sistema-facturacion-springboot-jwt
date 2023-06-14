@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.udemy.springboot.app</groupId>
-	<artifactId>spring-boot-jpa</artifactId>
+	<artifactId>spring-boot-jwt</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>spring-boot-jpa</name>
+	<name>spring-boot-jwt</name>
 	<description>Demo project for Spring Boot</description>
 	<properties>
 		<java.version>17</java.version>
@@ -95,6 +95,11 @@
 		    <groupId>com.sun.xml.bind</groupId>
 		    <artifactId>jaxb-impl</artifactId>
 		    <scope>runtime</scope>
+		</dependency>
+		<dependency>
+		    <groupId>io.jsonwebtoken</groupId>
+		    <artifactId>jjwt</artifactId>
+		    <version>0.9.0</version>
 		</dependency>
 	</dependencies>
 
