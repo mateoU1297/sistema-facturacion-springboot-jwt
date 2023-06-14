@@ -1,21 +1,28 @@
 package com.udemy.springboot.di.app.auth.filter;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+
+import javax.crypto.SecretKey;
 
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -58,9 +65,19 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 		
 		String username = authResult.getName();
 		
+		Collection<? extends GrantedAuthority> roles = authResult.getAuthorities();
+		
+		Claims claims = Jwts.claims();
+		claims.put("authorities", new ObjectMapper().writeValueAsString(roles));
+		
+		SecretKey secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS512);
+		
 		String token = Jwts.builder()
+				.setClaims(claims)
 				.setSubject(username)
-				.signWith(SignatureAlgorithm.HS512, "Alguna.Clave.Secreta.123456".getBytes())
+				.signWith(secretKey)
+				.setIssuedAt(new Date())
+				.setExpiration(new Date(System.currentTimeMillis() + 14000000L))
 				.compact();
 		
 		response.addHeader("Authorization", "Bearer " + token);
