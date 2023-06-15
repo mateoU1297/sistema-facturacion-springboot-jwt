@@ -14,6 +14,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 import com.udemy.springboot.di.app.auth.filter.JWTAuthenticationFilter;
+import com.udemy.springboot.di.app.auth.filter.JWTAuthorizationFilter;
 import com.udemy.springboot.di.app.models.service.JpaUserDetailsService;
 
 @EnableMethodSecurity(securedEnabled = true, prePostEnabled = true)
@@ -45,6 +46,7 @@ public class SpringSecurityConfig {
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		http.authorizeHttpRequests().requestMatchers("/", "/css/**", "/js/**", "/images/**", "/listar**", "/locale")
 				.permitAll().anyRequest().authenticated().and()
+				.addFilter(new JWTAuthorizationFilter(authenticationConfiguration.getAuthenticationManager()))
 				.addFilter(new JWTAuthenticationFilter(authenticationConfiguration.getAuthenticationManager())).csrf()
 				.disable().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 		return http.build();

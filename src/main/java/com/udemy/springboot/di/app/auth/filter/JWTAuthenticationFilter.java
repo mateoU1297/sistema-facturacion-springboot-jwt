@@ -17,7 +17,10 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
+import com.fasterxml.jackson.core.exc.StreamReadException;
+import com.fasterxml.jackson.databind.DatabindException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.udemy.springboot.di.app.models.entity.Usuario;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -31,64 +34,83 @@ import jakarta.servlet.http.HttpServletResponse;
 public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 
 	private AuthenticationManager authenticationManager;
-	
+
 	public JWTAuthenticationFilter(AuthenticationManager authenticationManager) {
 		this.authenticationManager = authenticationManager;
 		setRequiresAuthenticationRequestMatcher(new AntPathRequestMatcher("/api/login", "POST"));
 	}
-	
+
 	@Override
 	public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response)
 			throws AuthenticationException {
-		
+
 		String username = obtainUsername(request);
 		String password = obtainPassword(request);
-		
-		if(username == null) {
-			username = "";
+
+		Usuario user = null;
+
+		try {
+			user = new ObjectMapper().readValue(request.getInputStream(), Usuario.class);
+
+			username = user.getUsername();
+			password = user.getPassword();
+
+		} catch (StreamReadException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (DatabindException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-		
-		if(password == null) {
-			password = "";
-		}
-		
+
 		username = username.trim();
-		
+
 		UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(username, password);
-		
+
 		return authenticationManager.authenticate(authToken);
 	}
 
 	@Override
 	protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain,
 			Authentication authResult) throws IOException, ServletException {
-		
+
 		String username = authResult.getName();
-		
+
 		Collection<? extends GrantedAuthority> roles = authResult.getAuthorities();
-		
+
 		Claims claims = Jwts.claims();
 		claims.put("authorities", new ObjectMapper().writeValueAsString(roles));
-		
+
 		SecretKey secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS512);
-		
-		String token = Jwts.builder()
-				.setClaims(claims)
-				.setSubject(username)
-				.signWith(secretKey)
-				.setIssuedAt(new Date())
-				.setExpiration(new Date(System.currentTimeMillis() + 14000000L))
-				.compact();
-		
+
+		String token = Jwts.builder().setClaims(claims).setSubject(username).signWith(secretKey).setIssuedAt(new Date())
+				.setExpiration(new Date(System.currentTimeMillis() + 14000000L)).compact();
+
 		response.addHeader("Authorization", "Bearer " + token);
-		
+
 		Map<String, Object> body = new HashMap<String, Object>();
 		body.put("token", token);
 		body.put("user", (User) authResult.getPrincipal());
 		body.put("mensaje", String.format("Hola %s, has iniciado sesión con éxito!", username));
-		
+
 		response.getWriter().write(new ObjectMapper().writeValueAsString(body));
 		response.setStatus(200);
+		response.setContentType("application/json");
+	}
+
+	@Override
+	protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
+			AuthenticationException failed) throws IOException, ServletException {
+		
+		Map<String, Object> body = new HashMap<String, Object>();
+		body.put("mensaje", "Error de autenticación: username o password incorrecto!");
+		body.put("error", failed.getMessage());
+		
+		response.getWriter().write(new ObjectMapper().writeValueAsString(body));
+		response.setStatus(401);
 		response.setContentType("application/json");
 	}
 
