@@ -14,6 +14,7 @@ import org.springframework.security.web.SecurityFilterChain;
 
 import com.udemy.springboot.di.app.auth.filter.JWTAuthenticationFilter;
 import com.udemy.springboot.di.app.auth.filter.JWTAuthorizationFilter;
+import com.udemy.springboot.di.app.auth.service.JWTService;
 import com.udemy.springboot.di.app.models.service.JpaUserDetailsService;
 
 @EnableMethodSecurity(securedEnabled = true, prePostEnabled = true)
@@ -30,6 +31,9 @@ public class SpringSecurityConfig {
 
 	@Autowired
 	private AuthenticationConfiguration authenticationConfiguration;
+	
+	@Autowired
+	private JWTService jwtService;
 
 	@Bean
 	public AuthenticationManager authenticationManager() throws Exception {
@@ -45,8 +49,8 @@ public class SpringSecurityConfig {
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		http.authorizeHttpRequests().requestMatchers("/", "/css/**", "/js/**", "/images/**", "/listar**", "/locale")
 				.permitAll().anyRequest().authenticated().and()
-				.addFilter(new JWTAuthorizationFilter(authenticationConfiguration.getAuthenticationManager()))
-				.addFilter(new JWTAuthenticationFilter(authenticationConfiguration.getAuthenticationManager())).csrf()
+				.addFilter(new JWTAuthorizationFilter(authenticationConfiguration.getAuthenticationManager(), jwtService))
+				.addFilter(new JWTAuthenticationFilter(authenticationConfiguration.getAuthenticationManager(), jwtService)).csrf()
 				.disable().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 		return http.build();
 	}
