@@ -1,12 +1,11 @@
 package com.udemy.springboot.di.app.auth.filter;
 
 import java.io.IOException;
+import java.security.Key;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-
-import javax.crypto.SecretKey;
 
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -39,6 +38,8 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 		this.authenticationManager = authenticationManager;
 		setRequiresAuthenticationRequestMatcher(new AntPathRequestMatcher("/api/login", "POST"));
 	}
+
+	public static final Key SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS512);
 
 	@Override
 	public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response)
@@ -84,10 +85,8 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 		Claims claims = Jwts.claims();
 		claims.put("authorities", new ObjectMapper().writeValueAsString(roles));
 
-		SecretKey secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS512);
-
-		String token = Jwts.builder().setClaims(claims).setSubject(username).signWith(secretKey).setIssuedAt(new Date())
-				.setExpiration(new Date(System.currentTimeMillis() + 14000000L)).compact();
+		String token = Jwts.builder().setClaims(claims).setSubject(username).signWith(SECRET_KEY)
+				.setIssuedAt(new Date()).setExpiration(new Date(System.currentTimeMillis() + 14000000L)).compact();
 
 		response.addHeader("Authorization", "Bearer " + token);
 
@@ -104,11 +103,11 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 	@Override
 	protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
 			AuthenticationException failed) throws IOException, ServletException {
-		
+
 		Map<String, Object> body = new HashMap<String, Object>();
 		body.put("mensaje", "Error de autenticación: username o password incorrecto!");
 		body.put("error", failed.getMessage());
-		
+
 		response.getWriter().write(new ObjectMapper().writeValueAsString(body));
 		response.setStatus(401);
 		response.setContentType("application/json");
